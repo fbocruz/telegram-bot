@@ -25,3 +25,6 @@ def webhook():
 
     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
     return "ok"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
