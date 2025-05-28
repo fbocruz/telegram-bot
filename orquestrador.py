@@ -9,9 +9,8 @@ usuarios = {}
 assinantes = set()  # Simulado. Idealmente vem da planilha.
 
 # Endpoints do middleware
-
-URL_VINCULAR = os.getenv("URL_VINCULAR", "https://kiwify-middleware.onrender.com/vincular_nome")
-URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://kiwify-middleware.onrender.com/verificar_assinante")
+URL_VINCULAR = os.getenv("URL_VINCULAR", "https://telegram-bot-snxj.onrender.com/vincular_nome")
+URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://telegram-bot-snxj.onrender.com/verificar_assinante")
 
 # Função para saudação com base no horário
 def saudacao(nome):
@@ -58,7 +57,7 @@ def processar_mensagem(texto, username):
 
     if username not in usuarios:
         if texto.startswith("/start"):
-            return "Antes de começarmos, qual é o seu nome? Responda assim: 'Meu nome é Fulano'"
+            return "Olá! Antes de começarmos, qual é o seu nome?"
         if texto.startswith("meu nome é"):
             nome = texto.replace("meu nome é", "").strip().title()
             usuarios[username] = nome
@@ -66,17 +65,19 @@ def processar_mensagem(texto, username):
             saud = saudacao(nome)
             return (f"{saud} Percebi que tem interesse em adquirir seu assistente de produtividade, "
                     f"que ocorre através de uma assinatura mensal e vai te ajudar todos os dias em seu planejamento diário.\n"
-                    f"Estou te enviando o link para assinatura: https://pay.kiwify.com.br/yZfmggt\n"
+                    f"Estou te enviando o link para assinatura: https://pay.kiwify.com.br/iejR3F8\n"
+                    f"Após efetuar a compra, por favor, me envie o e-mail utilizado para que eu possa associar corretamente sua conta.\n"
                     f"Apenas lembrando que você terá 30 dias para cancelamento.")
         else:
-            return "Antes de começarmos, qual é o seu nome? Responda assim: 'Meu nome é Fulano'"
+            return "Não entendi bem sua mensagem. Qual é o seu nome?"
 
     nome = usuarios[username]
 
     if texto.startswith("/vincular"):
         return "Por favor, me envie o seu e-mail da compra para associarmos ao seu usuário."
 
-    if "ajuda" in texto:
+    if any(palavra in texto for palavra in ["ajuda", "apoio", "auxilio"]):
         return f"Oi {nome}, claro! Estou aqui para te ajudar. O que você precisa?"
 
-    return f"{nome}, recebi sua mensagem: '{texto}'. Em breve terei mais funções!"
+    return (f"Desculpe {nome}, não consegui entender exatamente o que você quis dizer.\n"
+            f"Você poderia me contar se está com alguma dúvida ou precisa de ajuda com algo específico?")
