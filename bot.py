@@ -8,7 +8,6 @@ app = Flask(__name__)
 # Pegando o token da variável de ambiente no Render
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 BOT_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
-print("BOT_URL:", BOT_URL)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
