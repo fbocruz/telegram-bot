@@ -8,6 +8,7 @@ app = Flask(__name__)
 # Pegando o token da variável de ambiente no Render
 TELEGRAM_TOKEN = os.getenv("7969184483:AAEHfgUFiUmeWIJBpAV6KxjJl7okF02Ud2I")
 BOT_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+print("BOT_URL:", BOT_URL)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -27,9 +28,7 @@ def webhook():
         text = processar_mensagem(message, username)
 
     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
-    print("Resposta do Telegram:", response.status_code, response.text)
     return "ok"
 
 if __name__ == "__main__":
-    print("BOT_URL:", BOT_URL)
     app.run(host="0.0.0.0", port=10000)
