@@ -8,6 +8,7 @@ app = Flask(__name__)
 # Pegando o token da variável de ambiente no Render
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 BOT_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+print("BOT_URL:", BOT_URL)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -18,15 +19,10 @@ def webhook():
 
     print("Mensagem recebida:", message)
 
-    if message.lower().startswith("/start"):
-        text = f"Olá @{username}, seja bem-vindo! Aqui está seu link de compra: https://pay.kiwify.com.br/iejR3F8"
-    elif message.lower().startswith("/vincular"):
-        text = "Por favor, me envie o seu e-mail da compra para associarmos ao seu usuário."
-    else:
-        # Qualquer outra mensagem será tratada pela IA do orquestrador
-        text = processar_mensagem(message, username)
+    # Toda mensagem será tratada pelo orquestrador
+    resposta = processar_mensagem(message, username)
 
-    requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
+    requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": resposta})
     return "ok"
 
 if __name__ == "__main__":
