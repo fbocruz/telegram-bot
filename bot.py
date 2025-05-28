@@ -6,7 +6,7 @@ from orquestrador import processar_mensagem  # Importando o orquestrador
 app = Flask(__name__)
 
 # Pegando o token da variável de ambiente no Render
-TELEGRAM_TOKEN = os.getenv("7969184483:AAEHfgUFiUmeWIJBpAV6KxjJl7okF02Ud2I")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 BOT_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 print("BOT_URL:", BOT_URL)
 
