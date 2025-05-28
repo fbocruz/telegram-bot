@@ -27,6 +27,7 @@ def webhook():
         text = processar_mensagem(message, username)
 
     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
+    print("Resposta do Telegram:", response.status_code, response.text)
     return "ok"
 
 if __name__ == "__main__":
