@@ -65,7 +65,7 @@ def processar_mensagem(texto, username):
             saud = saudacao(nome)
             return (f"{saud} Percebi que tem interesse em adquirir seu assistente de produtividade, "
                     f"que ocorre através de uma assinatura mensal e vai te ajudar todos os dias em seu planejamento diário.\n"
-                    f"Estou te enviando o link para assinatura: https://pay.kiwify.com.br/iejR3F8\n"
+                    f"Estou te enviando o link para assinatura: https://pay.kiwify.com.br/yZfmggt\n"
                     f"Apenas lembrando que você terá 30 dias para cancelamento.")
         else:
             return "Antes de começarmos, qual é o seu nome? Responda assim: 'Meu nome é Fulano'"
