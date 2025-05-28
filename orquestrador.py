@@ -9,8 +9,8 @@ usuarios = {}
 assinantes = set()  # Simulado. Idealmente vem da planilha.
 
 # Endpoints do middleware
-URL_VINCULAR = os.getenv("URL_VINCULAR", "https://telegram-bot-snxj.onrender.com/vincular_nome")
-URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://telegram-bot-snxj.onrender.com/verificar_assinante")
+URL_VINCULAR = os.getenv("URL_VINCULAR", "https://kiwify-middleware.onrender.com/vincular_nome")
+URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://kiwify-middleware.onrender.com/verificar_assinante")
 
 # Função para saudação com base no horário
 def saudacao(nome):
