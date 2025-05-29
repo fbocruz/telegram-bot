@@ -16,6 +16,8 @@ def webhook():
     message = update.get("message", {}).get("text", "")
     username = update.get("message", {}).get("from", {}).get("username", "")
     chat_id = update.get("message", {}).get("chat", {}).get("id")
+    print(username)
+    print(chat_id)
 
     print("Mensagem recebida:", message)
 
