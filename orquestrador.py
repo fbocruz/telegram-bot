@@ -4,13 +4,14 @@ from datetime import datetime
 import requests
 import os
 import json
+import re
 
 # Armazena nomes temporariamente
 usuarios = {}
 
 # Endpoints do middleware
-URL_VINCULAR = os.getenv("URL_VINCULAR", "https://kiwify-middleware.onrender.com/vincular_nome")
-URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://kiwify-middleware.onrender.com/verificar_assinante")
+URL_VINCULAR = os.getenv("URL_VINCULAR", "https://telegram-bot-snxj.onrender.com/vincular_nome")
+URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://telegram-bot-snxj.onrender.com/verificar_assinante")
 
 # === Prompts dos agentes ===
 PROMPT_VENDEDOR = """
@@ -107,50 +108,59 @@ def saudacao(nome):
 
 def agente_vendedor(texto, username):
     if username not in usuarios:
+        nome_detectado = extrair_nome(texto)
         if texto.startswith("/start"):
             return "Olá! Qual é o seu nome?"
-        else:
-            prompt = f"""
-{PROMPT_VENDEDOR}
+        elif nome_detectado:
+            nome = nome_detectado
+            usuarios[username] = nome
+            registrar_nome(username, nome)
+            saud = saudacao(nome)
+            prompt = f"""{PROMPT_VENDEDOR}
 
-Usuário desconhecido escreveu: \"{texto}\".
-
-A intenção dessa mensagem é a pessoa dizer o nome dela? Se sim, qual o nome? Responda no formato JSON:
-{{"é_nome": true, "nome": "Fulano"}} ou {{"é_nome": false}}
-"""
-            resposta = consultar_openrouter(prompt)
-            try:
-                resultado = json.loads(resposta)
-                if resultado.get("é_nome") and resultado.get("nome"):
-                    nome = resultado["nome"].strip().title()
-                    usuarios[username] = nome
-                    registrar_nome(username, nome)
-                    saud = saudacao(nome)
-                    prompt_venda = f"""{PROMPT_VENDEDOR}
-
-O usuário {nome} acabou de se apresentar com: \"{texto}\".
+O usuário {nome} iniciou a conversa com: \"{texto}\".
 
 Crie uma resposta empática que:
 1. Dê boas-vindas.
 2. Explique o benefício da assinatura.
-3. Envie o link de pagamento: https://pay.kiwify.com.br/yZfmggt
-4. Oriente para informar o e-mail da compra após o pagamento, para ativar o acesso."""
-                    resposta_venda = consultar_openrouter(prompt_venda)
-                    return resposta_venda or f"{saud} Que bom que você chegou! Aqui está seu link: https://pay.kiwify.com.br/yZfmggt"
-            except:
-                pass
+3. Envie o link de pagamento: https://pay.kiwify.com.br/iejR3F8
+4. Oriente para informar o e-mail da compra após o pagamento, para ativar o acesso.
+5. Explique que ele terá 30 dias para experimentar e poderá solicitar reembolso nesse período."""
+            resposta = consultar_openrouter(prompt)
+            return resposta or (f"{saud} Percebi que tem interesse em adquirir seu assistente de produtividade.\n"
+                                f"Estou te enviando o link para assinatura: https://pay.kiwify.com.br/iejR3F8\n"
+                                f"Após efetuar a compra, por favor, me envie o e-mail utilizado para que eu possa associar corretamente sua conta.\n"
+                                f"Você terá 30 dias para experimentar e pode solicitar reembolso nesse período, se desejar.")
+        elif texto:
+            prompt = f"""{PROMPT_VENDEDOR}
 
-            prompt_nome = f"""{PROMPT_VENDEDOR}
-
-Usuário disse: \"{texto}\".
+Usuário desconhecido disse: \"{texto}\"
 
 Como responder educadamente pedindo o nome dele?"""
-            resposta = consultar_openrouter(prompt_nome)
+            resposta = consultar_openrouter(prompt)
             return resposta or "Desculpe, não entendi. Você poderia me dizer seu nome, por favor?"
+
+# === Extra: Detectar nome ===
+def extrair_nome(texto):
+    texto = texto.lower()
+    padroes = [r"meu nome é (.+)", r"sou o (.+)", r"sou a (.+)", r"me chamo (.+)", r"ol[áa],? sou (.+)"]
+    for padrao in padroes:
+        match = re.search(padrao, texto)
+        if match:
+            return match.group(1).strip().title()
+    if len(texto.split()) == 1 and texto.isalpha():
+        return texto.title()
+    return None
 
 # === Função orquestradora ===
 def processar_mensagem(texto, username):
     texto = texto.strip().lower()
+
+    if re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+", texto):
+        email = texto
+        registrar_nome(username, email)
+        usuarios[username] = email
+        return "E-mail recebido! Já associei seu acesso. Vamos começar? Como posso te ajudar hoje?"
 
     ativo, nome_assinante = verificar_assinante(username)
     if ativo:
