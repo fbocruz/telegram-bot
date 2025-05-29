@@ -69,26 +69,22 @@ def verificar_assinante(username):
         response = requests.post(URL_VERIFICAR, json={"username": username})
         if response.status_code == 200:
             dados = response.json()
-            return dados.get("assinatura_ativa", False), dados.get("nome", "")
+            nome = dados.get("nome", "")
+            if username and nome:
+                usuarios[username] = nome
+            return dados.get("assinatura_ativa", False), nome
         return False, ""
     except Exception as e:
         print("Erro na verificação de assinante:", e)
         return False, ""
 
-def registrar_nome(username, nome=None, email=None):
+def registrar_nome(username, nome):
     try:
-        payload = {"username": username}
-        if nome:
-            payload["nome"] = nome
-        if email:
-            payload["email"] = email
-        response = requests.post(URL_VINCULAR, json=payload)
-        if response.status_code == 200:
-            return response.json()
-        return None
+        response = requests.post(URL_VINCULAR, json={"username": username, "nome": nome})
+        return response.status_code == 200
     except Exception as e:
         print("Erro ao registrar nome:", e)
-        return None
+        return False
 
 # === Agente: SUPORTE ===
 def agente_suporte(texto, nome):
@@ -117,7 +113,10 @@ def agente_vendedor(texto, username):
         if texto.startswith("/start"):
             return "Olá! Qual é o seu nome?"
         elif any(p in texto for p in ["meu nome é", "sou", "me chamo"]):
-            nome = texto.replace("meu nome é", "").replace("sou", "").replace("me chamo", "").strip().title()
+            nome = texto.lower()
+            for prefixo in ["meu nome é", "sou", "me chamo"]:
+                nome = nome.replace(prefixo, "")
+            nome = nome.strip().title()
             usuarios[username] = nome
             registrar_nome(username, nome)
             saud = saudacao(nome)
@@ -149,22 +148,32 @@ Como responder educadamente pedindo o nome dele?"""
 def processar_mensagem(texto, username):
     texto = texto.strip()
 
+    if not username:
+        print("Erro: username está vazio ou None")
+        return "Ocorreu um erro na identificação do usuário. Por favor, tente novamente."
+
+    # Tentativa de vincular por e-mail (caso seja um e-mail válido)
     if "@" in texto and "." in texto:
-        email_digitado = texto.lower()
-        resultado = registrar_nome(username=username, email=email_digitado)
-        print(resultado)
-        if resultado and resultado.get("vinculado"):
-            nome = resultado.get("nome", "Assinante")
-            usuarios[username] = nome
-            return f"E-mail recebido! Já associei seu acesso, {nome}. Vamos começar? Como posso te ajudar hoje?"
-        return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
+        email_digitado = texto.strip().lower()
+        try:
+            response = requests.post(URL_VINCULAR, json={"username": username, "email": email_digitado})
+            if response.status_code == 200:
+                dados = response.json()
+                if dados.get("vinculado"):
+                    nome = dados.get("nome", "Assinante")
+                    usuarios[username] = nome
+                    return f"E-mail recebido! Já associei seu acesso, {nome}. Vamos começar? Como posso te ajudar hoje?"
+            return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
+        except Exception as e:
+            print("Erro ao vincular e-mail:", e)
+            return "Ocorreu um erro ao processar seu e-mail. Pode tentar novamente?"
 
     ativo, nome_assinante = verificar_assinante(username)
     if ativo:
         if username not in usuarios:
             usuarios[username] = nome_assinante or "Assinante"
         nome = usuarios[username]
-        return agente_planejador(texto.lower(), nome)
+        return agente_planejador(texto, nome)
 
     if username not in usuarios or not usuarios[username]:
         resposta_vendedor = agente_vendedor(texto.lower(), username)
@@ -173,7 +182,7 @@ def processar_mensagem(texto, username):
 
     nome = usuarios.get(username, "Usuário")
 
-    if texto.lower().startswith("/vincular"):
+    if texto.startswith("/vincular"):
         return "Por favor, me envie o seu e-mail da compra para associarmos ao seu usuário."
 
     resposta_suporte = agente_suporte(texto, nome)
