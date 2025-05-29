@@ -84,6 +84,14 @@ def registrar_nome(username, nome):
         print("Erro ao registrar nome:", e)
         return False
 
+def registrar_email(username, nome, email):
+    try:
+        response = requests.post(URL_VINCULAR, json={"username": username, "nome": nome, "email": email})
+        return response.status_code == 200
+    except Exception as e:
+        print("Erro ao registrar e-mail:", e)
+        return False
+
 # === Agente: SUPORTE ===
 def agente_suporte(texto, nome):
     prompt = f"{PROMPT_SUPORTE}\n\nUsuário ({nome}) disse: {texto}\n\nComo você responderia?"
@@ -108,11 +116,10 @@ def saudacao(nome):
 
 def agente_vendedor(texto, username):
     if username not in usuarios:
-        nome_detectado = extrair_nome(texto)
         if texto.startswith("/start"):
             return "Olá! Qual é o seu nome?"
-        elif nome_detectado:
-            nome = nome_detectado
+        elif any(palavra in texto for palavra in ["meu nome é", "sou", "me chamo"]):
+            nome = texto.replace("meu nome é", "").replace("sou", "").replace("me chamo", "").strip().title()
             usuarios[username] = nome
             registrar_nome(username, nome)
             saud = saudacao(nome)
@@ -125,12 +132,13 @@ Crie uma resposta empática que:
 2. Explique o benefício da assinatura.
 3. Envie o link de pagamento: https://pay.kiwify.com.br/iejR3F8
 4. Oriente para informar o e-mail da compra após o pagamento, para ativar o acesso.
-5. Explique que ele terá 30 dias para experimentar e poderá solicitar reembolso nesse período."""
+5. Lembre que ele terá 30 dias para cancelar e pedir reembolso.
+"""
             resposta = consultar_openrouter(prompt)
             return resposta or (f"{saud} Percebi que tem interesse em adquirir seu assistente de produtividade.\n"
                                 f"Estou te enviando o link para assinatura: https://pay.kiwify.com.br/iejR3F8\n"
                                 f"Após efetuar a compra, por favor, me envie o e-mail utilizado para que eu possa associar corretamente sua conta.\n"
-                                f"Você terá 30 dias para experimentar e pode solicitar reembolso nesse período, se desejar.")
+                                f"Apenas lembrando que você terá 30 dias para cancelamento e reembolso.")
         elif texto:
             prompt = f"""{PROMPT_VENDEDOR}
 
@@ -140,27 +148,17 @@ Como responder educadamente pedindo o nome dele?"""
             resposta = consultar_openrouter(prompt)
             return resposta or "Desculpe, não entendi. Você poderia me dizer seu nome, por favor?"
 
-# === Extra: Detectar nome ===
-def extrair_nome(texto):
-    texto = texto.lower()
-    padroes = [r"meu nome é (.+)", r"sou o (.+)", r"sou a (.+)", r"me chamo (.+)", r"ol[áa],? sou (.+)"]
-    for padrao in padroes:
-        match = re.search(padrao, texto)
-        if match:
-            return match.group(1).strip().title()
-    if len(texto.split()) == 1 and texto.isalpha():
-        return texto.title()
-    return None
-
 # === Função orquestradora ===
 def processar_mensagem(texto, username):
     texto = texto.strip().lower()
 
-    if re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+", texto):
-        email = texto
-        registrar_nome(username, email)
-        usuarios[username] = email
-        return "E-mail recebido! Já associei seu acesso. Vamos começar? Como posso te ajudar hoje?"
+    # Verifica se o texto contém um e-mail válido
+    if re.match(r"[^@\s]+@[^@\s]+\.[a-zA-Z0-9]+", texto):
+        nome = usuarios.get(username, "Assinante")
+        if registrar_email(username, nome, texto):
+            return f"E-mail recebido! Já associei seu acesso. Vamos começar? Como posso te ajudar hoje?"
+        else:
+            return f"Tive um problema ao associar seu e-mail. Pode tentar novamente?"
 
     ativo, nome_assinante = verificar_assinante(username)
     if ativo:
