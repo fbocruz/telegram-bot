@@ -151,10 +151,8 @@ def processar_mensagem(texto, username):
 
     if "@" in texto and "." in texto:
         email_digitado = texto.lower()
-        print(nome)
-        print(username)
-        print(email_digitado)
         resultado = registrar_nome(username=username, email=email_digitado)
+        print(resultado)
         if resultado and resultado.get("vinculado"):
             nome = resultado.get("nome", "Assinante")
             usuarios[username] = nome
