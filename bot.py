@@ -14,8 +14,8 @@ print("BOT_URL:", BOT_URL)
 def webhook():
     update = request.json
     message = update.get("message", {}).get("text", "")
-    username = update.get("message", {}).get("from", {}).get("username", "")
-    chat_id = update.get("message", {}).get("chat", {}).get("id")
+    username = update.message.from_user.username   #update.get("message", {}).get("from", {}).get("username", "")
+    chat_id = update.message.chat_id #update.get("message", {}).get("chat", {}).get("id")
     print(username)
     print(chat_id)
 
