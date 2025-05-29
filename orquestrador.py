@@ -75,13 +75,20 @@ def verificar_assinante(username):
         print("Erro na verificação de assinante:", e)
         return False, ""
 
-def registrar_nome(username, nome):
+def registrar_nome(username, nome=None, email=None):
     try:
-        response = requests.post(URL_VINCULAR, json={"username": username, "nome": nome})
-        return response.status_code == 200
+        payload = {"username": username}
+        if nome:
+            payload["nome"] = nome
+        if email:
+            payload["email"] = email
+        response = requests.post(URL_VINCULAR, json=payload)
+        if response.status_code == 200:
+            return response.json()
+        return None
     except Exception as e:
         print("Erro ao registrar nome:", e)
-        return False
+        return None
 
 # === Agente: SUPORTE ===
 def agente_suporte(texto, nome):
@@ -140,39 +147,32 @@ Como responder educadamente pedindo o nome dele?"""
 
 # === Função orquestradora ===
 def processar_mensagem(texto, username):
-    texto = texto.strip().lower()
+    texto = texto.strip()
 
-    # Tentativa de vincular por e-mail (caso seja um e-mail válido)
     if "@" in texto and "." in texto:
-        email_digitado = texto.strip().lower()
-        try:
-            response = requests.post(URL_VINCULAR, json={"username": username, "email": email_digitado})
-            if response.status_code == 200:
-                dados = response.json()
-                if dados.get("vinculado"):
-                    nome = dados.get("nome", "Assinante")
-                    usuarios[username] = nome
-                    return f"E-mail recebido! Já associei seu acesso, {nome}. Vamos começar? Como posso te ajudar hoje?"
-            return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
-        except Exception as e:
-            print("Erro ao vincular e-mail:", e)
-            return "Ocorreu um erro ao processar seu e-mail. Pode tentar novamente?"
+        email_digitado = texto.lower()
+        resultado = registrar_nome(username=username, email=email_digitado)
+        if resultado and resultado.get("vinculado"):
+            nome = resultado.get("nome", "Assinante")
+            usuarios[username] = nome
+            return f"E-mail recebido! Já associei seu acesso, {nome}. Vamos começar? Como posso te ajudar hoje?"
+        return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
 
     ativo, nome_assinante = verificar_assinante(username)
     if ativo:
         if username not in usuarios:
             usuarios[username] = nome_assinante or "Assinante"
         nome = usuarios[username]
-        return agente_planejador(texto, nome)
+        return agente_planejador(texto.lower(), nome)
 
     if username not in usuarios or not usuarios[username]:
-        resposta_vendedor = agente_vendedor(texto, username)
+        resposta_vendedor = agente_vendedor(texto.lower(), username)
         if resposta_vendedor:
             return resposta_vendedor
 
     nome = usuarios.get(username, "Usuário")
 
-    if texto.startswith("/vincular"):
+    if texto.lower().startswith("/vincular"):
         return "Por favor, me envie o seu e-mail da compra para associarmos ao seu usuário."
 
     resposta_suporte = agente_suporte(texto, nome)
