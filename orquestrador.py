@@ -133,10 +133,10 @@ O usuário {nome} acabou de se apresentar com: \"{texto}\".
 Crie uma resposta empática que:
 1. Dê boas-vindas.
 2. Explique o benefício da assinatura.
-3. Envie o link de pagamento: https://pay.kiwify.com.br/iejR3F8
+3. Envie o link de pagamento: https://pay.kiwify.com.br/yZfmggt
 4. Oriente para informar o e-mail da compra após o pagamento, para ativar o acesso."""
                     resposta_venda = consultar_openrouter(prompt_venda)
-                    return resposta_venda or f"{saud} Que bom que você chegou! Aqui está seu link: https://pay.kiwify.com.br/iejR3F8"
+                    return resposta_venda or f"{saud} Que bom que você chegou! Aqui está seu link: https://pay.kiwify.com.br/yZfmggt"
             except:
                 pass
 
