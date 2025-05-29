@@ -14,11 +14,15 @@ print("BOT_URL:", BOT_URL)
 def webhook():
     update = request.json
     message = update.get("message", {}).get("text", "")
-    username = update.message.from_user.username   #update.get("message", {}).get("from", {}).get("username", "")
-    chat_id = update.message.chat_id #update.get("message", {}).get("chat", {}).get("id")
-    print(username)
-    print(chat_id)
+    from_user = update.get("message", {}).get("from", {})
+    username = from_user.get("username") or f"user_{from_user.get('id')}"
+    nome = from_user.get("first_name", "")
 
+    print(f"username: {username}, nome: {nome}")
+    
+    #username = update.message.from_user.username   #update.get("message", {}).get("from", {}).get("username", "")
+    #chat_id = update.message.chat_id #update.get("message", {}).get("chat", {}).get("id")
+    
     print("Mensagem recebida:", message)
 
     # Toda mensagem será tratada pelo orquestrador
