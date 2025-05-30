@@ -50,23 +50,30 @@ def webhook():
             # 1. Verifica assinatura pelo e-mail
             verif = requests.post(os.getenv("URL_VERIFICAR_EMAIL"), json={"email": email})
             dados_verif = verif.json()
-    
-            if dados_verif.get("assinatura_ativa"):
-                # 2. Se ativa, então chama o vínculo
-                vinculo = requests.post(os.getenv("URL_VINCULAR"), json={"email": email, "username": username, "nome": nome})
-                if vinculo.status_code == 200 and vinculo.json().get("vinculado"):
-                    nome_assinante = vinculo.json().get("nome", nome)
-                    texto = f"E-mail recebido! Acesso ativado para {nome_assinante}. Aproveite seu assistente de produtividade!"
+
+            if verif.status_code == 200 and dados_verif.get("assinatura_ativa") is not None:
+                if dados_verif.get("assinatura_ativa"):
+                    # 2. Se ativa, então chama o vínculo
+                    vinculo = requests.post(os.getenv("URL_VINCULAR"), json={"email": email, "username": username, "nome": nome})
+                    if vinculo.status_code == 200 and vinculo.json().get("vinculado"):
+                        nome_assinante = vinculo.json().get("nome", nome)
+                        texto = f"E-mail recebido! Acesso ativado para {nome_assinante}. Aproveite seu assistente de produtividade!"
+                        requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": texto})
+                        return "ok"
+                else:
+                    texto = "Identificamos seu e-mail, mas sua assinatura está inativa ou expirada. Você pode reativá-la aqui: https://pay.kiwify.com.br/yZfmggt"
                     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": texto})
                     return "ok"
             else:
-                texto = "Identificamos seu e-mail, mas sua assinatura está inativa ou expirada. Você pode reativá-la aqui: https://pay.kiwify.com.br/yZfmggt"
+                texto = "Não conseguimos localizar seu e-mail na nossa base. Por favor, verifique se digitou corretamente."
                 requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": texto})
                 return "ok"
-    
+
         except Exception as e:
             print("Erro ao tentar verificar e vincular e-mail:", e)
-
+            texto = "Tivemos um erro ao processar seu e-mail. Por favor, tente novamente."
+            requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": texto})
+            return "ok"
 
     # === Toda outra mensagem ===
     resposta = processar_mensagem(message, username, nome)
