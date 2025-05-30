@@ -146,6 +146,11 @@ Como responder educadamente pedindo o nome dele?"""
 
 # === Função orquestradora ===
 def processar_mensagem(mensagem, username, nome_usuario):
+    if isinstance(mensagem, dict):
+      texto = mensagem.get("text", "")
+    else:
+      texto = str(mensagem)
+
     texto = texto.strip()
 
     if not username:
