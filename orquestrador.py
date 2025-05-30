@@ -11,6 +11,7 @@ usuarios = {}
 # Endpoints do middleware
 URL_VINCULAR = os.getenv("URL_VINCULAR", "https://kiwify-middleware.onrender.com/vincular_nome")
 URL_VERIFICAR = os.getenv("URL_VERIFICAR", "https://kiwify-middleware.onrender.com/verificar_assinante")
+URL_WEBHOOK = os.getenv("URL_WEBHOOK", "https://kiwify-middleware.onrender.com/webhook")
 
 # === Prompts dos agentes ===
 PROMPT_VENDEDOR = """
@@ -64,9 +65,10 @@ def consultar_openrouter(prompt):
         return None
 
 # === Agente: CONTROLLER ===
-def verificar_assinante(username):
+def verificar_assinante(username=None, email=None):
     try:
-        response = requests.post(URL_VERIFICAR, json={"username": username})
+        payload = {"username": username} if username else {"email": email}
+        response = requests.post(URL_VERIFICAR, json=payload)
         if response.status_code == 200:
             dados = response.json()
             nome = dados.get("nome", "")
@@ -150,6 +152,35 @@ Como responder educadamente pedindo o nome dele?"""
             resposta = consultar_openrouter(prompt)
             return resposta or "Desculpe, não entendi. Você poderia me dizer seu nome, por favor?"
 
+# === Processador de eventos de webhook da Kiwify ===
+def processar_evento_kiwify(evento):
+    try:
+        tipo = evento.get("event")
+        dados = evento.get("data", {})
+        email = dados.get("email")
+        vencimento = dados.get("current_period_end")
+
+        if not email:
+            return "E-mail não informado"
+
+        if tipo in ["purchase.approved", "subscription.renewed"]:
+            requests.post(URL_VINCULAR, json={
+                "email": email,
+                "assinatura_ativa": True,
+                "vencimento": vencimento
+            })
+
+        elif tipo in ["subscription.canceled", "subscription.expired"]:
+            requests.post(URL_VINCULAR, json={
+                "email": email,
+                "assinatura_ativa": False
+            })
+
+        return "ok"
+    except Exception as e:
+        print("Erro ao processar evento da Kiwify:", e)
+        return "erro"
+
 # === Função orquestradora ===
 def processar_mensagem(mensagem, username, nome_usuario):
     if isinstance(mensagem, dict):
@@ -163,23 +194,23 @@ def processar_mensagem(mensagem, username, nome_usuario):
         print("Erro: username está vazio ou None")
         return "Ocorreu um erro na identificação do usuário. Por favor, tente novamente."
 
-    # Tentativa de vincular por e-mail (caso seja um e-mail válido)
+    if texto.startswith("/start"):
+        ativo, nome_assinante = verificar_assinante(username)
+        if ativo:
+            return f"Olá {nome_assinante}, sua assinatura está ativa. Aproveite seu assistente de planejamento diário!"
+        elif nome_assinante:
+            return f"Olá {nome_assinante}, vimos que sua assinatura está expirada ou foi cancelada. Se quiser reativar, acesse: https://pay.kiwify.com.br/yZfmggt"
+
     if "@" in texto and "." in texto:
         email_digitado = texto.strip().lower()
-        try:
-            response = requests.post(URL_VINCULAR, json={"username": username, "email": email_digitado, "nome": nome_usuario})
-            if response.status_code == 200:
-                dados = response.json()
-                if dados.get("vinculado"):
-                    nome = dados.get("nome", nome_usuario or "Assinante")
-                    usuarios[username] = nome
-                    return f"E-mail recebido! Já associei seu acesso, {nome}. Vamos começar? Como posso te ajudar hoje?"
-                elif dados.get("assinatura_ativa") is False:
-                    return "Sua assinatura está cancelada ou expirada. Se desejar renovar, acesse: https://pay.kiwify.com.br/yZfmggt"
-            return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
-        except Exception as e:
-            print("Erro ao vincular e-mail:", e)
-            return "Ocorreu um erro ao processar seu e-mail. Pode tentar novamente?"
+        ativo, nome_assinante = verificar_assinante(email=email_digitado)
+        if ativo:
+            if username and nome_assinante:
+                usuarios[username] = nome_assinante
+            return f"E-mail reconhecido! Sua assinatura está ativa, {nome_assinante}. Aproveite seu assistente de planejamento diário."
+        elif nome_assinante:
+            return f"Olá {nome_assinante}, sua assinatura está cancelada ou expirada. Se desejar renovar, acesse: https://pay.kiwify.com.br/yZfmggt"
+        return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
 
     ativo, nome_assinante = verificar_assinante(username)
     if ativo:

@@ -1,7 +1,7 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import requests
 import os
-from orquestrador import processar_mensagem, verificar_assinante  # Importando também a verificação
+from orquestrador import processar_mensagem, verificar_assinante, processar_evento_kiwify
 
 app = Flask(__name__)
 
@@ -13,6 +13,13 @@ print("BOT_URL:", BOT_URL)
 @app.route("/webhook", methods=["POST"])
 def webhook():
     update = request.json
+
+    # === Trata eventos do Kiwify ===
+    if "event" in update and "email" in update:
+        resultado = processar_evento_kiwify(update)
+        return jsonify({"status": resultado}), 200
+
+    # === Trata mensagens do Telegram ===
     message = update.get("message", {}).get("text", "")
     chat_id = update.get("message", {}).get("chat", {}).get("id")
     from_user = update.get("message", {}).get("from", {})
@@ -22,20 +29,21 @@ def webhook():
     print(f"username: {username}, nome: {nome}")
     print("Mensagem recebida:", message)
 
-    # === VALIDAÇÃO DE ASSINATURA NO INÍCIO DA CONVERSA ===
     texto_minusculo = message.lower().strip()
-    if texto_minusculo == "/start" or texto_minusculo == "oi" or texto_minusculo == "olá":
+
+    # === Início de conversa: /start ou saudação ===
+    if texto_minusculo in ["/start", "oi", "olá"]:
         ativo, nome_assinante = verificar_assinante(username)
         if ativo:
             saud = f"Olá {nome_assinante or nome}, sua assinatura está ativa. Aproveite seu assistente de planejamento diário!"
-            requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": saud})
-            return "ok"
         elif nome_assinante:
-            saud = f"Olá {nome_assinante or nome}, sua assinatura foi cancelada ou expirada. Para reativar, use esse link: https://pay.kiwify.com.br/yZfmggt"
-            requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": saud})
-            return "ok"
+            saud = f"Olá {nome_assinante}, sua assinatura foi cancelada ou expirada. Para reativar, use esse link: https://pay.kiwify.com.br/yZfmggt"
+        else:
+            saud = "Olá! Qual é o seu nome?"
+        requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": saud})
+        return "ok"
 
-    # === VALIDAÇÃO DE ASSINATURA POR E-MAIL ===
+    # === Validação de assinatura por e-mail ===
     if "@" in message and "." in message:
         email = message.strip().lower()
         try:
@@ -49,7 +57,7 @@ def webhook():
         except Exception as e:
             print("Erro ao tentar vincular e-mail:", e)
 
-    # Toda outra mensagem será tratada pelo orquestrador
+    # === Toda outra mensagem ===
     resposta = processar_mensagem(message, username, nome)
     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": resposta})
     return "ok"
