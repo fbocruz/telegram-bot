@@ -111,13 +111,7 @@ def saudacao(nome):
 def agente_vendedor(texto, username):
     if username not in usuarios:
         if texto.startswith("/start"):
-            ativo, nome_assinante = verificar_assinante(username)
-            if ativo:
-                return f"Olá {nome_assinante}, sua assinatura está ativa. Aproveite seu assistente de planejamento diário!"
-            elif nome_assinante:
-                return f"Olá {nome_assinante}, vimos que sua assinatura está expirada ou foi cancelada. Se quiser reativar, acesse: https://pay.kiwify.com.br/yZfmggt"
-            else:
-                return "Olá! Qual é o seu nome?"
+            return "Olá! Qual é o seu nome?"
         elif any(p in texto for p in ["meu nome é", "sou", "me chamo"]):
             nome = texto.lower()
             for prefixo in ["meu nome é", "sou", "me chamo"]:
@@ -153,9 +147,9 @@ Como responder educadamente pedindo o nome dele?"""
 # === Função orquestradora ===
 def processar_mensagem(mensagem, username, nome_usuario):
     if isinstance(mensagem, dict):
-        texto = mensagem.get("text", "")
+      texto = mensagem.get("text", "")
     else:
-        texto = str(mensagem)
+      texto = str(mensagem)
 
     texto = texto.strip()
 
@@ -171,11 +165,9 @@ def processar_mensagem(mensagem, username, nome_usuario):
             if response.status_code == 200:
                 dados = response.json()
                 if dados.get("vinculado"):
-                    nome = dados.get("nome", nome_usuario or "Assinante")
+                    nome = dados.get("nome", "Assinante")
                     usuarios[username] = nome
                     return f"E-mail recebido! Já associei seu acesso, {nome}. Vamos começar? Como posso te ajudar hoje?"
-                elif dados.get("assinatura_ativa") is False:
-                    return "Sua assinatura está cancelada ou expirada. Se desejar renovar, acesse: https://pay.kiwify.com.br/yZfmggt"
             return "Tive um problema ao associar seu e-mail. Pode tentar novamente?"
         except Exception as e:
             print("Erro ao vincular e-mail:", e)
