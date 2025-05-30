@@ -145,7 +145,7 @@ Como responder educadamente pedindo o nome dele?"""
             return resposta or "Desculpe, não entendi. Você poderia me dizer seu nome, por favor?"
 
 # === Função orquestradora ===
-def processar_mensagem(texto, username):
+def processar_mensagem(mensagem, username, nome_usuario):
     texto = texto.strip()
 
     if not username:
@@ -156,10 +156,7 @@ def processar_mensagem(texto, username):
     if "@" in texto and "." in texto:
         email_digitado = texto.strip().lower()
         try:
-            print("---processar_mensagem antes de vincular_nome---")
-            print(email_digitado)
-            print(username)
-            response = requests.post(URL_VINCULAR, json={"username": username, "email": email_digitado})
+            response = requests.post(URL_VINCULAR, json={"username": username, "email": email_digitado, "nome": nome_usuario})
             if response.status_code == 200:
                 dados = response.json()
                 if dados.get("vinculado"):

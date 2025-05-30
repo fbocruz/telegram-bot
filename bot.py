@@ -24,7 +24,7 @@ def webhook():
     print("Mensagem recebida:", message)
 
     # Toda mensagem será tratada pelo orquestrador
-    resposta = processar_mensagem(message, username)
+    resposta = processar_mensagem(message, username, nome)
 
     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": resposta})
     return "ok"
