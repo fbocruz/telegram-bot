@@ -39,7 +39,8 @@ def webhook():
             usuarios[username] = nome_assinante
             texto = f"Olá {usuarios[username]}, sua assinatura foi cancelada ou expirada. Para reativar, use esse link: https://pay.kiwify.com.br/yZfmggt"
         else:
-            texto = "Olá! Qual é o seu nome?"
+            usuarios[username] = nome
+            texto = f"Olá {usuarios[username]}, tudo bem? Estou aqui para te ajudar a começar com seu assistente de produtividade. Qual é o seu principal objetivo hoje?"
 
         requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": texto})
         return "ok"
