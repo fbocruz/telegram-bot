@@ -10,6 +10,9 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 BOT_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 print("BOT_URL:", BOT_URL)
 
+# Memória simples de usuários identificados
+usuarios = {}
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     update = request.json
@@ -35,11 +38,16 @@ def webhook():
     if texto_minusculo in ["/start", "oi", "olá"]:
         ativo, nome_assinante = verificar_assinante(username)
         if ativo:
-            saud = f"Olá {nome_assinante or nome}, sua assinatura está ativa. Aproveite seu assistente de planejamento diário!"
+            usuarios[username] = nome_assinante or nome
+            saud = f"Olá {usuarios[username]}, sua assinatura está ativa. Aproveite seu assistente de planejamento diário!"
         elif nome_assinante:
-            saud = f"Olá {nome_assinante}, sua assinatura foi cancelada ou expirada. Para reativar, use esse link: https://pay.kiwify.com.br/yZfmggt"
+            usuarios[username] = nome_assinante
+            saud = f"Olá {usuarios[username]}, sua assinatura foi cancelada ou expirada. Para reativar, use esse link: https://pay.kiwify.com.br/yZfmggt"
         else:
-            saud = "Olá! Qual é o seu nome?"
+            if username in usuarios and usuarios[username]:
+                saud = f"Olá {usuarios[username]}, vamos continuar nossa conversa!"
+            else:
+                saud = "Olá! Qual é o seu nome?"
         requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": saud})
         return "ok"
 
@@ -57,6 +65,7 @@ def webhook():
                     vinculo = requests.post(os.getenv("URL_VINCULAR"), json={"email": email, "username": username, "nome": nome})
                     if vinculo.status_code == 200 and vinculo.json().get("vinculado"):
                         nome_assinante = vinculo.json().get("nome", nome)
+                        usuarios[username] = nome_assinante
                         texto = f"E-mail recebido! Acesso ativado para {nome_assinante}. Aproveite seu assistente de produtividade!"
                         requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": texto})
                         return "ok"
@@ -76,7 +85,8 @@ def webhook():
             return "ok"
 
     # === Toda outra mensagem ===
-    resposta = processar_mensagem(message, username, nome)
+    nome_armazenado = usuarios.get(username, nome)
+    resposta = processar_mensagem(message, username, nome_armazenado)
     requests.post(f"{BOT_URL}/sendMessage", json={"chat_id": chat_id, "text": resposta})
     return "ok"
 
